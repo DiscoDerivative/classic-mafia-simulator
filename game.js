@@ -1,26 +1,41 @@
-class Game {
-  constructor(time, action, vote, role) {
-    this.time = time;
-    this.action = action;
-    this.vote = vote;
-  }
-}
+/*
+Mafia Simulation Program
 
-class Player {
-  constructor(players, dead, role, oldrole){
+This program is a simulation of a mafia game, more specifically if it was only AI.
+It features the classic setup that consists of three villagers, one cop, one doctor,
+and two mafia or mafioso. It is a demonstration of how the first night works and how it leads
+into the first day. It accounts for the doctor saving night one, in which no one dies. It also
+accounts for mafia not being able to kill each other, doctor not being able to save themself
+and cop not being able to investigate themself. I hope to expand on this by making it a full game 
+instead of just an example of the night.
+*/
+
+
+// Controls the time and the players (in-game)
+class Game {
+  constructor(time, players, dead, role, deadRole) {
+    this.time = time;
     this.players = players;
     this.dead = dead;
     this.role = role;
-    this.oldrole = oldrole;
+    this.deadRole = deadRole;
   }
 }
 
-const PlayerList = new Player();
+// Controls the state of the players (pre-lobby) and their roles
+class Player {
+  constructor(players){
+    this.players = players;
+  }
+}
+
 // Acts as the players within a lobby before the game starts
+const PlayerList = new Player();
+
 PlayerList.players = ["Kevin", "Michael", "Jack", "Sarah", "Amy", "Maria", "Ryan"];
 
-const PlayersAlive = new Game();
 // Acts as the players alive in-game at the start of a game
+const PlayersAlive = new Game();
 PlayersAlive.players = ["Kevin", "Michael", "Jack", "Sarah", "Amy", "Maria", "Ryan"];
 
 // Acts as players currently dead (Default is 0)
@@ -29,19 +44,19 @@ PlayersAlive.dead = [];
 // Acts as the setup
 PlayersAlive.role = ["Villager", "Villager", "Villager", "Cop", "Doctor", "Mafioso", "Mafioso"];
 
+// GAME START
 
-
-const Mafia = new Game();
-Mafia.players = PlayerList.players;
-
+// Message that verifies if the game started.
 function starting() {
   console.log("Game Starting...");
 }
 
+// Message that verifies that the game state is set to night
 function gameStateNight(time) {
   console.log("Night " + time);
 }
 
+// Assigns roles to the players in the game
 function assignRole() { 
   // Shuffles the list of roles
   for (let i = PlayersAlive.role.length - 1; i > 0; i--) {
@@ -55,80 +70,64 @@ function assignRole() {
 
 // Night Actions
 
+// Selects a random player (AI)
 function pickPlayer() {
   let pick = PlayersAlive.players[Math.floor(Math.random() * PlayersAlive.players.length)];
   return pick;
 }
 
+// Mafiosos will pick a player to kill.
 function mafiaMeeting() {
-  const mafiaKill = pickPlayer();
-  
-  // Find index of picked player and remove them from playersAlive
+
+  let targetIndex, mafiaKill;
+
+  // Chooses a target that isn't mafia
+  do{
+    mafiaKill = pickPlayer();
+    targetIndex = PlayersAlive.players.indexOf(mafiaKill);
+  }while(PlayersAlive.role[targetIndex] == "Mafioso");
+
+  PlayersAlive.deadRole = PlayersAlive.role[targetIndex];
   return mafiaKill;
 }
 
+// Cop picks a player to investigate their allignment.
 function copMeeting() {
-  const investigate = pickPlayer();
+  // Chooses a target that isn't themself
+  let targetIndex, investigate;
+  do{
+    investigate = pickPlayer();
+    targetIndex = PlayersAlive.players.indexOf(investigate);
+  }while(PlayersAlive.role[targetIndex] == "Cop");
   return investigate;
 }
 
+// Doctor picks a player to save from dying.
 function docMeeting() {
-  const save = pickPlayer();
-
-  // If mafia and doc have the same person, push back the player
+  let targetIndex, save;
+  // Chooses a target that isn't themself
+  do{
+    save = pickPlayer();
+    targetIndex = PlayersAlive.players.indexOf(save);
+  }while(PlayersAlive.role[targetIndex] == "Doctor");
   return save;
 }
 
-function action(role) {
-
-  const killPlayer = mafiaMeeting();
-  const investigatePlayer = copMeeting();
-  const savePlayer = docMeeting();
-
-  const nightActionValue = [];
-
-  for(let i = 0; i < role.length; i++) {
-
-    if (role[i] == "Mafioso"){
-      nightActionValue[i] = killPlayer;
-    }
-
-    else if(role[i] == "Cop"){
-      nightActionValue[i] = investigatePlayer;
-    }
-    else if(role[i] == "Doctor"){
-      nightActionValue[i] = "Save -> " + savePlayer;
-    }
-    else{
-      nightActionValue[i] = null;
-    }
-  }
-  return nightActionValue;
-} 
-
 function playerMove() {
   // Needs the randomized list of roles to assign to each player in the game
-  const roleList = assignRole();
 
   // Displays the player, their role and what action they took.
-  for(let i = 0; i < PlayerList.players.length; i++) {
-    console.log("Player " + (i + 1) + ": " + PlayerList.players[i]);
-    console.log("Role: " + roleList[i]);
-    console.log("\n");
+  for(let i = 0; i < PlayersAlive.players.length; i++) {
+    console.log("Player " + (i + 1) + ": " + PlayersAlive.players[i]);
+    console.log("Role: " + PlayersAlive.role[i]);
   }
 }
 
-// Returns the player list of who's currently alive after the night
-
-function mafiaTargetRole() {
-  const mafiaSelection = mafiaMeeting();
-  const isTarget = (element) => element == mafiaSelection;
-  const targetIndex = PlayersAlive.players.findIndex(isTarget);
-  const targetRole = PlayersAlive.role[targetIndex];
-  console.log("Target Role: " + targetRole);
-  return targetRole;
-}
-
+/*
+This controls what happens when mafia and doctor select the same target.
+It also displays what target each power role selected.
+A power role is a member of the town with night actions.
+*/
 function nightLogic() {
   console.log("Night Actions");
 
@@ -155,28 +154,31 @@ function nightLogic() {
 }
 
 
-// Logic for Day
+// Displays system messages of the day
 
+/* A system message is information based on the role permission
+   Everyone can see who dies but only cop can see who they investigate.
+*/
 function gameStateDay(time) {
   console.log("Day " + time);
 
   if(PlayersAlive.dead.length > 0) {
     console.log(PlayersAlive.dead + " died whilst tending to their garden.");
-    console.log(PlayersAlive.dead + "'s role was: " + dead);
+    console.log(PlayersAlive.dead + "'s role was: " + PlayersAlive.deadRole);
+  }
+  else{
+    console.log("No one died.");
   }
 }
 
-//starting();
-//gameStateNight(1)
+// Night One
+starting();
+gameStateNight(1)
 assignRole();
 playerMove();
-const dead = mafiaTargetRole();
 console.log("\n");
-
 nightLogic();
 console.log("\n");
+
+// Day One
 gameStateDay(1);
-
-console.log(PlayersAlive.players);
-console.log(PlayersAlive.dead);
-
