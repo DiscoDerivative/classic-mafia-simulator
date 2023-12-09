@@ -13,12 +13,13 @@ instead of just an example of the night.
 
 // Controls the time and the players (in-game)
 class Game {
-  constructor(time, players, dead, role, deadRole) {
+  constructor(time, players, dead, role, deadRole, checkedAllignment) {
     this.time = time;
     this.players = players;
     this.dead = dead;
     this.role = role;
     this.deadRole = deadRole;
+    this.checkedAllignment = checkedAllignment;
   }
 }
 
@@ -43,6 +44,14 @@ PlayersAlive.dead = [];
 
 // Acts as the setup
 PlayersAlive.role = ["Villager", "Villager", "Villager", "Cop", "Doctor", "Mafioso", "Mafioso"];
+
+// Allignment
+
+PlayersAlive.allignment = ["Town", "Mafia"];
+
+// Cop Checkin Allignment
+
+PlayersAlive.checkedAllignment = [];
 
 // GAME START
 
@@ -133,12 +142,9 @@ function nightLogic() {
 
   const docSelection = docMeeting();
   const mafiaSelection = mafiaMeeting();
-  const copSelection = copMeeting();
 
   console.log("Doctor Selection: " + docSelection);
   console.log("Mafia Selection: " + mafiaSelection);
-  console.log("Cop Selection: " + copSelection);
-
 
   const isMafiaKill = (element) => element == mafiaSelection;
   const mafiaKillIndex = PlayersAlive.players.findIndex(isMafiaKill);
@@ -153,6 +159,38 @@ function nightLogic() {
   }
 }
 
+function copInvestigation(){
+  const copSelection = copMeeting();
+
+  //Cop selection must match players role to allignment
+  //Find index of person and index of role
+  const isInvestigated = (element) => element == copSelection;
+  const investigatedIndex = PlayersAlive.players.findIndex(isInvestigated);
+  const investigatedRole = PlayersAlive.role[investigatedIndex];
+  let reportAllignment;
+
+  // Pushes cop selection to a new array so that the game can take data from it
+  PlayersAlive.checkedAllignment.push(copSelection);
+
+  // Sets report allignment to town if cop checks a villager or doctor
+  if (investigatedRole === "Villager" || investigatedRole === "Doctor") {
+    reportAllignment = "Town";
+    return reportAllignment;
+
+  // Sets report allignment to mafia otherwise
+  }
+  else {
+    reportAllignment = "Mafia";
+    return reportAllignment;
+  }
+
+  /* TEST WORKS
+  console.log(PlayersAlive.players);
+  console.log(investigatedIndex);
+  console.log(PlayersAlive.role[investigatedIndex]);
+
+  */
+}
 
 // Displays system messages of the day
 
@@ -162,6 +200,10 @@ function nightLogic() {
 function gameStateDay(time) {
   console.log("Day " + time);
 
+  let report = copInvestigation();
+
+  console.log("You receive a report that " + PlayersAlive.checkedAllignment + " is " + report + ".");
+
   if(PlayersAlive.dead.length > 0) {
     console.log(PlayersAlive.dead + " died whilst tending to their garden.");
     console.log(PlayersAlive.dead + "'s role was: " + PlayersAlive.deadRole);
@@ -170,6 +212,8 @@ function gameStateDay(time) {
     console.log("No one died.");
   }
 }
+
+//The Day
 
 // Night One
 starting();
